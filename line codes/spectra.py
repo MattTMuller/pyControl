@@ -42,15 +42,10 @@ import numpy as np #  Library with large collection of high-level mathematical f
 import matplotlib.pyplot as plt #python plotting library
 import peakutils #baselining library
 
-from scipy.optimize import curve_fit
 import os,glob
  # Library with operating system dependent functionality. Example: Reading data from files on the computer
 
-import csv
 # from pathlib import *
-import mplcursors
-
-from sklearn import preprocessing
 
 from lmfit import Parameters, minimize
 from scipy import stats
