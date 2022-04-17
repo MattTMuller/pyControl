@@ -124,6 +124,15 @@ def take_mean(save_line: int) -> float:
     df2.to_csv('data.csv',index = False)
     return result
 
+def get_move_y(lines: int, start_y: int, step_y: int = 1) -> list:
+    move_y = [0 for i in range(int(lines))]
+    for i in range(int(lines)):
+    #     print(i)
+        if i == 0: move_y[i] = float(start_y)
+        if i > 0 :
+            move_y[i] = float(move_y[i-1]) + float(step_y)
+    return move_y
+
 # def take_mean(steps: float, save_line: int) -> float:
     
 #     print(os.getcwd())
