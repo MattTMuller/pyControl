@@ -55,14 +55,6 @@ from sklearn import preprocessing
 from lmfit import Parameters, minimize
 from scipy import stats
 
-
-
-
-
-
-
-
-
 def capture_photo(begin,exp_no,line,iii):
     global device_found
     global experiment
@@ -331,8 +323,9 @@ def capture_photo(begin,exp_no,line,iii):
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
-          
-                m="background"+str(k)+"D.csv"
+
+                #m="background"+str(k)+"D.csv"
+                m="'../../data/background"+str(k)+"D.csv"
                 with open(m, 'w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(["W", "I"])
@@ -376,6 +369,7 @@ def capture_photo(begin,exp_no,line,iii):
                 save_file(_file_name)
 
                 # Acquire image
+                print(f" >>>> measuring line: {line} spot: {exp_no}, iteration: {iii} @ {k}D region <<<<")
                 experiment.Acquire()
                 time.sleep(35)
                 #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
@@ -420,7 +414,7 @@ def capture_photo(begin,exp_no,line,iii):
 #                     print(".spe file not found...")
                   print(" ")
 
-
+               
                 wl= experiment.SystemColumnCalibration
                 wavelength=np.zeros((1,1340))
                 for i in range(1340):wavelength[0,i]=wl[i]
@@ -456,6 +450,8 @@ def capture_photo(begin,exp_no,line,iii):
         elif check_intensity<40e3:
             gdr=ration(1,2,exp_no,line,iii)
             return gdr
+
+
     if begin=="first":
         def set_value(setting, value):    
         # Check for existence before setting
@@ -491,7 +487,7 @@ def capture_photo(begin,exp_no,line,iii):
 
                 # Acquire image
                 experiment.Acquire()
-                time.sleep(25)
+                time.sleep(35)
                 #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
                 directory="C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
                 if( os.path.exists(directory)):        
@@ -590,8 +586,8 @@ def ration(a,b,i,line,iii):
 
     d1 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
     d2 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
-    _d1 = pd.read_csv("background1D.csv")
-    _d2 = pd.read_csv("background2D.csv")
+    _d1 = pd.read_csv('../../data/background1D.csv')
+    _d2 = pd.read_csv('../../data/background1D.csv')
     
 
     
@@ -736,9 +732,10 @@ def ration(a,b,i,line,iii):
    
     if df['WD'].values>120:
         if (df['D'].values>.3*df['G'].values or df['D1'].values > df['D'].values):
-            print("patterning not done")
+            print("Width D > 120 : patterning not done")
+
     elif (df['WG'].values>120):
-        print("patterning not done")
+        print("Width G > 120: patterning not done")
         df3=pd.read_csv('dataset.csv')
         df3['ratio'].replace(' ',np.nan, inplace=True)
         df4=df3.dropna(subset=["ratio"])
@@ -747,9 +744,10 @@ def ration(a,b,i,line,iii):
         df3.to_csv('dataset.csv',index=False)
     
     
-    elif np.mean(d1[d1['W']<1255]['I_base']) > 0.7*np.mean(d1[(d1['W']>1340) & (d1['W']<1350)]['I_base'])\
-        or np.mean(d1[(d1['W']>1400) & (d1['W']<1550)]['I_base']) > 0.7*np.mean(d1[(d1['W']>1340) & (d1['W']<1350)]['I_base']):
-        print("patterning not done")
+    elif (np.mean(d1[d1['W']<1255]['I_base']) > 0.7*np.mean(d1[(d1['W']>1340) & (d1['W']<1350)]['I_base'])\
+        or np.mean(d1[(d1['W']>1400) & (d1['W']<1550)]['I_base']) > 0.7*np.mean(d1[(d1['W']>1340) & (d1['W']<1350)]['I_base'])) \
+        and (df['GD'].values[0] <= 1.2) :
+        print("Intensity @ 1255 / 1500 abnormally high : patterning not done")
     
     else:
 
@@ -780,13 +778,15 @@ def ration2(m1,m2,counter,line,iii):
 
     import os, glob, csv
  # Library with operating system dependent functionality. Example: Reading data from files on the computer
-    bg1=pd.read_csv("background1D.csv")
-    bg2=pd.read_csv("background2D.csv")
+    bg1=pd.read_csv('../../data/background1D.csv')
+    bg2=pd.read_csv('../../data/background1D.csv')
+
+
 
     d1=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
     d2=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
-    _d1 = pd.read_csv("background1D.csv")
-    _d2 = pd.read_csv("background2D.csv")
+    _d1 = pd.read_csv('../../data/background1D.csv')
+    _d2 = pd.read_csv('../../data/background1D.csv')
     
     
     
@@ -951,3 +951,5 @@ def ration2(m1,m2,counter,line,iii):
         df3.to_csv('dataset-pre.csv',index=False)
     return df['GD'].values[0] 
 
+
+# %%
