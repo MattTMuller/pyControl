@@ -111,12 +111,12 @@ def repeats() -> None:
             for line in reader:
                 writer.writerow(line)
 
-def take_mean(save_line: int) -> float:
-    
+def take_mean(save_line: int, spots_measured: int) -> float:
+
     print(os.getcwd())
     df = pd.read_csv('dataset.csv')
-    result = df['ratio'].iloc[-SPOTS_TO_MEASURE:].mean()
-    df['ratio'].iloc[-SPOTS_TO_MEASURE:].fillna(0, inplace=True)
+    result = df['ratio'].iloc[-spots_measured:].mean()
+    df['ratio'].iloc[-spots_measured:].fillna(0, inplace=True)
     df.to_csv('dataset.csv', index = False)
 
     df2 = pd.read_csv('data.csv')
