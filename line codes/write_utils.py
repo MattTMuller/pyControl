@@ -166,19 +166,3 @@ def get_move_y(lines: int, start_y: int, step_y: int = 1) -> list:
         if i > 0 :
             move_y[i] = float(move_y[i-1]) + float(step_y)
     return move_y
-
-# def take_mean(steps: float, save_line: int) -> float:
-    
-#     print(os.getcwd())
-#     df = pd.read_csv('dataset.csv')
-
-#     valss = np.sort([df['ratio'][steps+8], df['ratio'][steps+7], df['ratio'][steps+6],
-#                     df['ratio'][steps+5], df['ratio'][steps+4], df['ratio'][steps+3],
-#                    df['ratio'][steps+2], df['ratio'][steps+1], df['ratio'][steps]])
-
-#     lst = [s for s in valss if str(s) != 'nan']
-#     result = np.mean(lst)
-#     df2 = pd.read_csv('data.csv')
-#     df2.loc[save_line,"ratio"] = result
-#     df2.to_csv('data.csv',index = False)
-#     return result
