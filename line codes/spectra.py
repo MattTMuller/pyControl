@@ -56,7 +56,7 @@ NR_DATA_PTS = 1340
 LASER_WAVELENGTH = 532 # in nm
 SPE_DIR = "C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
 
-def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD') -> None:
+def capture_photo(begin: str, spot: int, line: int, iii: int, target: str ='GD') -> None:
     global device_found
     global experiment
     global save_file
@@ -361,7 +361,7 @@ def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD
                 save_file(_file_name)
 
                 # Acquire image
-                print(f" >>>> measuring line: {line} spot: {exp_no}, iteration: {iii} @ {k}D region <<<<")
+                print(f" >>>> measuring line: {line} spot: {spot}, iteration: {iii} @ {k}D region <<<<")
                 experiment.Acquire()
                 time.sleep(SLEEP_TIME)
                 
@@ -427,7 +427,7 @@ def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD
                     inten.append(intensity[0,x])
                 import csv
           
-                m="line "+ str(line)+" Point "+str(exp_no)+" iteration "+str(iii)+" foreground"+str(k)+"D.csv"
+                m="line "+ str(line)+" Point "+str(spot)+" iteration "+str(iii)+" foreground"+str(k)+"D.csv"
                 with open(m, 'w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(["W", "I"])
@@ -435,10 +435,10 @@ def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD
 
                  
         if check_intensity>=40e3:
-            print("experiment: ",exp_no, ":Patterning not done")
+            print("experiment: ",spot, ":Patterning not done")
         #,twoGD,twoD,G,WD,WG
         elif check_intensity<40e3:
-            gdr=ration(1, 2, exp_no, line, iii, target)
+            gdr=ration(1, 2,  line, spot, iii, target)
             return gdr
 
 
@@ -538,18 +538,18 @@ def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
-                m="line "+ str(line)+" Before Point "+str(exp_no)+" iteration "+str(iii)+" foreground"+str(k)+"D.csv"
+                m="line "+ str(line)+" Before Point "+str(spot)+" iteration "+str(iii)+" foreground"+str(k)+"D.csv"
                 with open(m, 'w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(["W", "I"])
                     writer.writerows(zip(w,inten))
         
                  
-        gd = ration2(1,2,exp_no,line,iii, target)
+        gd = ration2(1, 2, line, spot, iii, target)
    
         return gd
 
-def ration(a, b, i: int, line: int, iii: int, target: str) -> float:
+def ration(a, b, line: int, spot: int, iii: int, target: str) -> float:
     
     """Plots LIG BEFORE PATTERN and get saves fits as fits.csv
     Plots currently saved manually.
@@ -559,10 +559,9 @@ def ration(a, b, i: int, line: int, iii: int, target: str) -> float:
     _d1: background GD
     _d2: background 2D
     """
-    counter=i
 
-    d1 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
-    d2 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
+    d1 = pd.read_csv("line "+str(line)+" Point "+str(spot)+" iteration "+str(iii)+" foreground1D.csv")
+    d2 = pd.read_csv("line "+str(line)+" Point "+str(spot)+" iteration "+str(iii)+" foreground2D.csv")
     d1_ = pd.read_csv('../../data/background1D.csv')
     d2_ = pd.read_csv('../../data/background1D.csv')
     
@@ -681,8 +680,9 @@ def ration(a, b, i: int, line: int, iii: int, target: str) -> float:
    
     df['GD']=df['G']/df['D']
     df['2DG']=df['2D']/df['G']
+    df['file'] = ','.join(str(x) for x in [line, spot, iii])
 
-    # df.to_csv('fit_results.csv',mode = 'a',index=False)
+    df.to_csv('fit_results.csv',mode = 'a', index=False, header=False)
 
     if df['WD'].values>120:
         if (df['D'].values>.3*df['G'].values or df['D1'].values > df['D'].values):
@@ -722,7 +722,7 @@ def ration(a, b, i: int, line: int, iii: int, target: str) -> float:
     
     return df['GD'].values[0] 
 
-def ration2(m1,m2,counter: int, line: int, iii: int, target: str) -> float:
+def ration2(m1, m2, line: int, spot: int, iii: int, target: str) -> float:
 
     from matplotlib.ticker import MultipleLocator
     from lmfit import Parameters, minimize
@@ -731,8 +731,8 @@ def ration2(m1,m2,counter: int, line: int, iii: int, target: str) -> float:
     import matplotlib.pyplot as plt #python plotting library
     import peakutils #baselining library
 
-    d1=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
-    d2=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
+    d1=pd.read_csv("line "+ str(line)+" Before Point "+str(spot)+" iteration "+str(iii)+" foreground1D.csv")
+    d2=pd.read_csv("line "+ str(line)+" Before Point "+str(spot)+" iteration "+str(iii)+" foreground2D.csv")
     d1_ = pd.read_csv('../../data/background1D.csv')
     d2_ = pd.read_csv('../../data/background1D.csv')
     
