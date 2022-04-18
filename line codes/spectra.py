@@ -50,7 +50,13 @@ import os,glob
 from lmfit import Parameters, minimize
 from scipy import stats
 
-def capture_photo(begin,exp_no,line,iii):
+COLLECTION_TIME = 100 # in ms
+SLEEP_TIME = 1.5 # in s
+NR_DATA_PTS = 1340
+LASER_WAVELENGTH = 532 # in nm
+SPE_DIR = "C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
+
+def capture_photo(begin: str, exp_no: int, line: int, iii: int, target: str ='GD') -> None:
     global device_found
     global experiment
     global save_file
@@ -87,8 +93,6 @@ def capture_photo(begin,exp_no,line,iii):
             # If connected device is not a camera inform the user
             print("Camera not found. Please add a camera and try again.")
             return False  
-
-
 
         # Create the LightField Application (true for visible)
         # The 2nd parameter forces LF to load with no experiment 
@@ -137,13 +141,12 @@ def capture_photo(begin,exp_no,line,iii):
                 # Acquire image
                 experiment.Acquire()
                 time.sleep(5)
-                #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
-                directory="C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
-                if( os.path.exists(directory)):        
+                
+                if( os.path.exists(SPE_DIR)):        
 #                         print("\nFound the .spe file...")        
                         print(" ")
                         # Returns all .spe files
-                        files = glob.glob(directory +'/*.spe')
+                        files = glob.glob(SPE_DIR +'/*.spe')
 
                         # Returns recently acquired .spe file
                         last_image_acquired = max(files, key=os.path.getctime)
@@ -157,7 +160,7 @@ def capture_photo(begin,exp_no,line,iii):
                             imageData = file.GetFrame(0,0)
                             #here is a problem 11-18-2019
                             
-                            intensity_frame=np.zeros((n,1340))
+                            intensity_frame=np.zeros((n,NR_DATA_PTS))
                             # Get image data
                             buffer = imageData.GetData()
                             #buffer=imageData.GetDataBuffer()
@@ -165,7 +168,7 @@ def capture_photo(begin,exp_no,line,iii):
                             for i in range(0,n):
                                 imageData=file.GetFrame(0,i)
                                 buffer=imageData.GetData()
-                                for pixel in range(0,1340):
+                                for pixel in range(0,NR_DATA_PTS):
                                     intensity_frame[i][pixel]=buffer[pixel]
 
                             file_name.Dispose()
@@ -186,11 +189,11 @@ def capture_photo(begin,exp_no,line,iii):
 
                 mirror('off')
                 wl= experiment.SystemColumnCalibration
-                wavelength=np.zeros((1,1340))
-                for i in range(1340):wavelength[0,i]=wl[i]
+                wavelength=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):wavelength[0,i]=wl[i]
                 #print(intensity_frame)
-                intensity=np.zeros((1,1340))
-                for i in range(1340):
+                intensity=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):
                     x=0
                     for j in range(n):
                         x=x+intensity_frame[j][i]
@@ -201,8 +204,8 @@ def capture_photo(begin,exp_no,line,iii):
                 w=[]
                 inten=[]
 
-                for x in range(1340):
-                    wavelength[0,x]=1e7*(1/532 - 1/wavelength[0,x])
+                for x in range(NR_DATA_PTS):
+                    wavelength[0,x]=1e7*(1/LASER_WAVELENGTH - 1/wavelength[0,x])
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
@@ -230,7 +233,7 @@ def capture_photo(begin,exp_no,line,iii):
             # Check this location for saved spe after running
             #print("Please Enter the Exposure Time:\n")
             #x=int(input())
-            set_value(CameraSettings.ShutterTimingExposureTime,3000)
+            set_value(CameraSettings.ShutterTimingExposureTime,COLLECTION_TIME)
             #print("Please Enter the Number of Frames")
             #y=int(input())
             experiment.SetValue(ExperimentSettings.AcquisitionFramesToStore,10)
@@ -247,14 +250,13 @@ def capture_photo(begin,exp_no,line,iii):
 
                 # Acquire image
                 experiment.Acquire()
-                time.sleep(35)
-                #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
-                directory="C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
-                if( os.path.exists(directory)):        
+                time.sleep(SLEEP_TIME)
+                
+                if( os.path.exists(SPE_DIR)):        
 #                         print("\nFound the .spe file...")        
                         print(" ")
                         # Returns all .spe files
-                        files = glob.glob(directory +'/*.spe')
+                        files = glob.glob(SPE_DIR +'/*.spe')
 
                         # Returns recently acquired .spe file
                         last_image_acquired = max(files, key=os.path.getctime)
@@ -269,7 +271,7 @@ def capture_photo(begin,exp_no,line,iii):
                             imageData = file.GetFrame(0,0)
                             #here is a problem 11-18-2019
                             n=5
-                            intensity_frame=np.zeros((n,1340))
+                            intensity_frame=np.zeros((n,NR_DATA_PTS))
                             # Get image data
                             buffer = imageData.GetData()
                             #buffer=imageData.GetDataBuffer()
@@ -277,7 +279,7 @@ def capture_photo(begin,exp_no,line,iii):
                             for i in range(0,n):
                                 imageData=file.GetFrame(0,i)
                                 buffer=imageData.GetData()
-                                for pixel in range(0,1340):
+                                for pixel in range(0,NR_DATA_PTS):
                                     intensity_frame[i][pixel]=buffer[pixel]
 
                             file_name.Dispose()
@@ -295,14 +297,12 @@ def capture_photo(begin,exp_no,line,iii):
 #                                     experiment.GetValue(
 #                                         ExperimentSettings.
 #                                         FileNameGenerationDirectory)))  
-
-
                 wl= experiment.SystemColumnCalibration
-                wavelength=np.zeros((1,1340))
-                for i in range(1340):wavelength[0,i]=wl[i]
+                wavelength=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):wavelength[0,i]=wl[i]
                 #print(intensity_frame)
-                intensity=np.zeros((1,1340))
-                for i in range(1340):
+                intensity=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):
                     x=0
                     for j in range(n):
                         x=x+intensity_frame[j][i]
@@ -313,8 +313,8 @@ def capture_photo(begin,exp_no,line,iii):
                 w=[]
                 inten=[]
 
-                for x in range(1340):
-                    wavelength[0,x]=1e7*(1/532 - 1/wavelength[0,x])
+                for x in range(NR_DATA_PTS):
+                    wavelength[0,x]=1e7*(1/LASER_WAVELENGTH - 1/wavelength[0,x])
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
@@ -326,7 +326,6 @@ def capture_photo(begin,exp_no,line,iii):
                     writer.writerow(["W", "I"])
                     writer.writerows(zip(w,inten))
 
-        
     if begin=="on":
         def set_value(setting, value):    
         # Check for existence before setting
@@ -339,8 +338,6 @@ def capture_photo(begin,exp_no,line,iii):
             # Sets the state of the event to signaled,
             # allowing one or more waiting threads to proceed.
             acquireCompleted.Set()
-       
-
         
         # Check for device and inform user if one is needed
         if (device_found()==True): 
@@ -348,7 +345,7 @@ def capture_photo(begin,exp_no,line,iii):
             # Check this location for saved spe after running
             #print("Please Enter the Exposure Time:\n")
             #x=int(input())
-            set_value(CameraSettings.ShutterTimingExposureTime,3000)
+            set_value(CameraSettings.ShutterTimingExposureTime,COLLECTION_TIME)
             #print("Please Enter the Number of Frames")
             #y=int(input())
             experiment.SetValue(ExperimentSettings.AcquisitionFramesToStore,10)
@@ -366,14 +363,13 @@ def capture_photo(begin,exp_no,line,iii):
                 # Acquire image
                 print(f" >>>> measuring line: {line} spot: {exp_no}, iteration: {iii} @ {k}D region <<<<")
                 experiment.Acquire()
-                time.sleep(35)
-                #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
-                directory="C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
-                if( os.path.exists(directory)): 
+                time.sleep(SLEEP_TIME)
+                
+                if( os.path.exists(SPE_DIR)): 
 #                         print("\nFound the .spe file...")        
                         print(" ")
                         # Returns all .spe files
-                        files = glob.glob(directory +'/*.spe')
+                        files = glob.glob(SPE_DIR +'/*.spe')
 
                         # Returns recently acquired .spe file
                         last_image_acquired = max(files, key=os.path.getctime)
@@ -388,7 +384,7 @@ def capture_photo(begin,exp_no,line,iii):
                             imageData = file.GetFrame(0,0)
                             #here is a problem 11-18-2019
                             n=10
-                            intensity_frame=np.zeros((n,1340))
+                            intensity_frame=np.zeros((n,NR_DATA_PTS))
                             # Get image data
                             buffer = imageData.GetData()
                             #buffer=imageData.GetDataBuffer()
@@ -396,7 +392,7 @@ def capture_photo(begin,exp_no,line,iii):
                             for i in range(0,n):
                                 imageData=file.GetFrame(0,i)
                                 buffer=imageData.GetData()
-                                for pixel in range(0,1340):
+                                for pixel in range(0,NR_DATA_PTS):
                                     intensity_frame[i][pixel]=buffer[pixel]
 
                             file_name.Dispose()
@@ -409,13 +405,12 @@ def capture_photo(begin,exp_no,line,iii):
 #                     print(".spe file not found...")
                   print(" ")
 
-               
                 wl= experiment.SystemColumnCalibration
-                wavelength=np.zeros((1,1340))
-                for i in range(1340):wavelength[0,i]=wl[i]
+                wavelength=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):wavelength[0,i]=wl[i]
                 #print(intensity_frame)
-                intensity=np.zeros((1,1340))
-                for i in range(1340):
+                intensity=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):
                     x=0
                     for j in range(n):
                         x=x+intensity_frame[j][i]
@@ -426,8 +421,8 @@ def capture_photo(begin,exp_no,line,iii):
                 w=[]
                 inten=[]
 
-                for x in range(1340):
-                    wavelength[0,x]=1e7*(1/532 - 1/wavelength[0,x])
+                for x in range(NR_DATA_PTS):
+                    wavelength[0,x]=1e7*(1/LASER_WAVELENGTH - 1/wavelength[0,x])
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
@@ -443,7 +438,7 @@ def capture_photo(begin,exp_no,line,iii):
             print("experiment: ",exp_no, ":Patterning not done")
         #,twoGD,twoD,G,WD,WG
         elif check_intensity<40e3:
-            gdr=ration(1,2,exp_no,line,iii)
+            gdr=ration(1, 2, exp_no, line, iii, target)
             return gdr
 
 
@@ -457,8 +452,6 @@ def capture_photo(begin,exp_no,line,iii):
         def experiment_completed(sender, event_args):    
 
             acquireCompleted.Set()
-       
-
         
         # Check for device and inform user if one is needed
         if (device_found()==True): 
@@ -466,7 +459,7 @@ def capture_photo(begin,exp_no,line,iii):
             # Check this location for saved spe after running
             #print("Please Enter the Exposure Time:\n")
             #x=int(input())
-            set_value(CameraSettings.ShutterTimingExposureTime,3000)
+            set_value(CameraSettings.ShutterTimingExposureTime,COLLECTION_TIME)
             #print("Please Enter the Number of Frames")
             experiment.SetValue(ExperimentSettings.AcquisitionFramesToStore,5)
             for k in range(1,3):
@@ -482,14 +475,13 @@ def capture_photo(begin,exp_no,line,iii):
 
                 # Acquire image
                 experiment.Acquire()
-                time.sleep(35)
-                #directory="C:\\Users\\labuser\\Desktop\\data\\Raman\\Vivek\\2019-10-08"
-                directory="C:\\Users\\UWAdmin\\Desktop\\AIM-Lab-Automation-master\\AIM-Lab-Automation-master\\spes"
-                if( os.path.exists(directory)):        
+                time.sleep(SLEEP_TIME)
+                
+                if( os.path.exists(SPE_DIR)):        
 #                         print("\nFound the .spe file...")        
                         print(" ")
                         # Returns all .spe files
-                        files = glob.glob(directory +'/*.spe')
+                        files = glob.glob(SPE_DIR +'/*.spe')
 
                         # Returns recently acquired .spe file
                         last_image_acquired = max(files, key=os.path.getctime)
@@ -504,7 +496,7 @@ def capture_photo(begin,exp_no,line,iii):
                             imageData = file.GetFrame(0,0)
                             #here is a problem 11-18-2019
                             n=5
-                            intensity_frame=np.zeros((n,1340))
+                            intensity_frame=np.zeros((n,NR_DATA_PTS))
                             # Get image data
                             buffer = imageData.GetData()
                             #buffer=imageData.GetDataBuffer()
@@ -512,7 +504,7 @@ def capture_photo(begin,exp_no,line,iii):
                             for i in range(0,n):
                                 imageData=file.GetFrame(0,i)
                                 buffer=imageData.GetData()
-                                for pixel in range(0,1340):
+                                for pixel in range(0,NR_DATA_PTS):
                                     intensity_frame[i][pixel]=buffer[pixel]
 
                             file_name.Dispose()
@@ -525,13 +517,12 @@ def capture_photo(begin,exp_no,line,iii):
 #                     print(".spe file not found...")
                   print(" ")
 
-
                 wl= experiment.SystemColumnCalibration
-                wavelength=np.zeros((1,1340))
-                for i in range(1340):wavelength[0,i]=wl[i]
+                wavelength=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):wavelength[0,i]=wl[i]
                 #print(intensity_frame)
-                intensity=np.zeros((1,1340))
-                for i in range(1340):
+                intensity=np.zeros((1,NR_DATA_PTS))
+                for i in range(NR_DATA_PTS):
                     x=0
                     for j in range(n):
                         x=x+intensity_frame[j][i]
@@ -542,8 +533,8 @@ def capture_photo(begin,exp_no,line,iii):
                 w=[]
                 inten=[]
 
-                for x in range(1340):
-                    wavelength[0,x]=1e7*(1/532 - 1/wavelength[0,x])
+                for x in range(NR_DATA_PTS):
+                    wavelength[0,x]=1e7*(1/LASER_WAVELENGTH - 1/wavelength[0,x])
                     w.append(wavelength[0,x])
                     inten.append(intensity[0,x])
                 import csv
@@ -554,16 +545,12 @@ def capture_photo(begin,exp_no,line,iii):
                     writer.writerows(zip(w,inten))
         
                  
-        gd=ration2(1,2,exp_no,line,iii)
+        gd = ration2(1,2,exp_no,line,iii, target)
    
         return gd
-        
-            
 
-def ration(a,b,i,line,iii):
+def ration(a, b, i: int, line: int, iii: int, target: str) -> float:
     
-   
-   
     """Plots LIG BEFORE PATTERN and get saves fits as fits.csv
     Plots currently saved manually.
     TO-DO: save each plot directly from this function
@@ -572,40 +559,24 @@ def ration(a,b,i,line,iii):
     _d1: background GD
     _d2: background 2D
     """
-  
-   
-
     counter=i
-    
-    fit=[]
 
     d1 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
     d2 = pd.read_csv("line "+str(line)+" Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
-    _d1 = pd.read_csv('../../data/background1D.csv')
-    _d2 = pd.read_csv('../../data/background1D.csv')
+    d1_ = pd.read_csv('../../data/background1D.csv')
+    d2_ = pd.read_csv('../../data/background1D.csv')
     
-
-    
-    # d1 = pd.read_csv(fn1)
-    d1 = d1
-    # d1_ = pd.read_csv(bg1)
-    d1_= _d1
-    d1['I'] = d1['I']-d1_['I']
+    d1['I'] = d1['I'] - d1_['I']
     base1 = peakutils.baseline(d1['I'], 1)
-    d1['I_base']= d1['I']-base1
-    d1 = d1[(d1['W']>1220) & (d1['W']<1750)]
+    d1['I_base'] = d1['I'] - base1
+    d1 = d1[(d1['W'] > 1220) & (d1['W'] < 1750)]
 
-    # d2 = pd.read_csv(fn2)
-    d2 = d2
-    # d2_ = pd.read_csv(bg2)
-    d2_= _d2
-    d2['I'] = d2['I']-d2_['I']
-    d2 = d2[(d2['W']>2550) & (d2['W']<2850)]
-    d2= d2[(np.abs(stats.zscore(d2))<3).all(axis=1)]
+    d2['I'] = d2['I'] - d2_['I']
+    d2 = d2[(d2['W'] > 2550) & (d2['W'] < 2850)]
+    d2 = d2[(np.abs(stats.zscore(d2)) < 3).all(axis = 1)]
     base2 = peakutils.baseline(d2['I'], 1)
-    d2['I_base'] = d2['I']-base2
+    d2['I_base'] = d2['I'] - base2
     
-
     def PseudoVoigtFunction(WavNr, Pos, Amp, GammaL, FracL):
         SigmaG = GammaL / np.sqrt(2*np.log(2)) # Calculate the sigma parameter  for the Gaussian distribution from GammaL (coupled in Pseudo-Voigt)
         LorentzPart = Amp * (GammaL**2 / ((WavNr - Pos)**2 + GammaL**2)) # Lorentzian distribution
@@ -660,7 +631,6 @@ def ration(a,b,i,line,iii):
             return (model - data)
         return (model - data)/eps # with errors, the difference is ponderated
 
-
     ps1 = Parameters()
 
     #            (Name,  Value,  Vary,   Min,  Max,  Expr)
@@ -685,8 +655,6 @@ def ration(a,b,i,line,iii):
                  ('s3',     20,   True,    10,   200,  None),
                  ('f3',    0.5,   True,  0, 1,  None))
 
-
-
     x = d1['W']
     y = d1['I_base']
     out = minimize(three_pv, ps1, method = 'leastsq', args=(x, y))
@@ -694,8 +662,6 @@ def ration(a,b,i,line,iii):
     x2 = d2['W']
     y2 = d2['I_base']
     out2 = minimize(one_pv, ps2, method = 'leastsq', args=(x2, y2))
-
-
 
     df1 = pd.DataFrame({key: [par.value] for key, par in out.params.items()})
     df2 = pd.DataFrame({key: [par.value] for key, par in out2.params.items()})
@@ -716,15 +682,8 @@ def ration(a,b,i,line,iii):
     df['GD']=df['G']/df['D']
     df['2DG']=df['2D']/df['G']
 
-#     df.to_csv('fits.csv',mode = 'a',index=False)
-#     print (df)
-    se=[df['D'].values[0],df['PD'].values[0],df['WD'].values[0],df['FD'].values[0],df['D1'].values[0],\
-        df['PD1'].values[0],df['WD1'].values[0],df['FD1'].values[0],df['G'].values[0],\
-       df['PG'].values[0],df['WG'].values[0],df['FG'].values[0],df['2D'].values[0],\
-        df['P2D'].values[0],df['W2D'].values[0],df['F2D'].values[0]]
-    
+    # df.to_csv('fit_results.csv',mode = 'a',index=False)
 
-   
     if df['WD'].values>120:
         if (df['D'].values>.3*df['G'].values or df['D1'].values > df['D'].values):
             print("Width D > 120 : patterning not done")
@@ -735,7 +694,10 @@ def ration(a,b,i,line,iii):
         df3['ratio'].replace(' ',np.nan, inplace=True)
         df4=df3.dropna(subset=["ratio"])
         a=df4['ratio'].shape
-        df3.loc[a[0],'ratio']=0
+        if target == '2DG':
+            df3.loc[a[0],'ratio'] = df['2DG'].values[0]
+        else:
+            df3.loc[a[0],'ratio'] = df['GD'].values[0]
         df3.to_csv('dataset.csv',index=False)
     
     
@@ -750,62 +712,41 @@ def ration(a,b,i,line,iii):
         df3['ratio'].replace(' ',np.nan, inplace=True)
         df4=df3.dropna(subset=["ratio"])
         a=df4['ratio'].shape
-        df3.loc[a[0],'ratio']=df['GD'].values[0]
+        if target == '2DG':
+            print(f"Extracting {target} to dataset.csv")
+            df3.loc[a[0],'ratio'] = df['2DG'].values[0]
+        else:
+            print(f"Extracting {target} to dataset.csv")
+            df3.loc[a[0],'ratio'] = df['GD'].values[0]
         df3.to_csv('dataset.csv',index=False)
+    
     return df['GD'].values[0] 
 
-def ration2(m1,m2,counter,line,iii):
-    get_ipython().run_line_magic('reload_ext', 'autoreload')
-    get_ipython().run_line_magic('autoreload', '2')
-    get_ipython().run_line_magic('pylab', 'inline')
-
+def ration2(m1,m2,counter: int, line: int, iii: int, target: str) -> float:
 
     from matplotlib.ticker import MultipleLocator
-    get_ipython().run_line_magic('reload_ext', 'autoreload')
-    get_ipython().run_line_magic('autoreload', '2')
-    get_ipython().run_line_magic('pylab', 'inline')
-    import sys
     from lmfit import Parameters, minimize
     import pandas as pd # python data manipulation and analysis library
     import numpy as np #  Library with large collection of high-level mathematical functions to operate on arrays
     import matplotlib.pyplot as plt #python plotting library
     import peakutils #baselining library
 
-    import os, glob, csv
- # Library with operating system dependent functionality. Example: Reading data from files on the computer
-    bg1=pd.read_csv('../../data/background1D.csv')
-    bg2=pd.read_csv('../../data/background1D.csv')
-
-
-
     d1=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground1D.csv")
     d2=pd.read_csv("line "+ str(line)+" Before Point "+str(counter)+" iteration "+str(iii)+" foreground2D.csv")
-    _d1 = pd.read_csv('../../data/background1D.csv')
-    _d2 = pd.read_csv('../../data/background1D.csv')
+    d1_ = pd.read_csv('../../data/background1D.csv')
+    d2_ = pd.read_csv('../../data/background1D.csv')
     
-    
-    
-    d1 = d1
-    # d1_ = pd.read_csv(bg1)
-    d1_= _d1
     d1['I'] = d1['I']-d1_['I']
     base1 = peakutils.baseline(d1['I'], 1)
     d1['I_base']= d1['I']-base1
     d1 = d1[(d1['W']>1220) & (d1['W']<1750)]
 
-    # d2 = pd.read_csv(fn2)
-    d2 = d2
-    # d2_ = pd.read_csv(bg2)
-    d2_= _d2
     d2['I'] = d2['I']-d2_['I']
     d2 = d2[(d2['W']>2550) & (d2['W']<2850)]
     d2= d2[(np.abs(stats.zscore(d2))<3).all(axis=1)]
     base2 = peakutils.baseline(d2['I'], 1)
     d2['I_base'] = d2['I']-base2
     
-    
-    
-
     def PseudoVoigtFunction(WavNr, Pos, Amp, GammaL, FracL):
         SigmaG = GammaL / np.sqrt(2*np.log(2)) # Calculate the sigma parameter  for the Gaussian distribution from GammaL (coupled in Pseudo-Voigt)
         LorentzPart = Amp * (GammaL**2 / ((WavNr - Pos)**2 + GammaL**2)) # Lorentzian distribution
@@ -885,8 +826,6 @@ def ration2(m1,m2,counter,line,iii):
                  ('s3',     20,   True,    10,   200,  None),
                  ('f3',    0.5,   True,  0, 1,  None))
 
-
-
     x = d1['W']
     y = d1['I_base']
     out = minimize(three_pv, ps1, method = 'leastsq', args=(x, y))
@@ -894,8 +833,6 @@ def ration2(m1,m2,counter,line,iii):
     x2 = d2['W']
     y2 = d2['I_base']
     out2 = minimize(one_pv, ps2, method = 'leastsq', args=(x2, y2))
-
-
 
     df1 = pd.DataFrame({key: [par.value] for key, par in out.params.items()})
     df2 = pd.DataFrame({key: [par.value] for key, par in out2.params.items()})
@@ -915,13 +852,6 @@ def ration2(m1,m2,counter,line,iii):
    
     df['GD']=df['G']/df['D']
     df['2DG']=df['2D']/df['G']
-
-
-    se=[df['D'].values[0],df['PD'].values[0],df['WD'].values[0],df['FD'].values[0],df['D1'].values[0],\
-        df['PD1'].values[0],df['WD1'].values[0],df['FD1'].values[0],df['G'].values[0],\
-       df['PG'].values[0],df['WG'].values[0],df['FG'].values[0],df['2D'].values[0],\
-        df['P2D'].values[0],df['W2D'].values[0],df['F2D'].values[0]]
-    
   
     if df['WD'].values>120:
         if (df['D'].values>.3*df['G'].values or df['D1'].values > df['D'].values):
@@ -932,8 +862,13 @@ def ration2(m1,m2,counter,line,iii):
         df3['ratio'].replace(' ',np.nan, inplace=True)
         df4=df3.dropna(subset=["ratio"])
         a=df4['ratio'].shape
-        df3.loc[a[0],'ratio']=0
-        df3.to_csv('dataset.csv',index=False)
+        if target == '2DG':
+            print(f"Extracting {target}")
+            df3.loc[a[0],'ratio'] = df['2DG'].values[0]
+        else:
+            print(f"Extracting {target}")
+            df3.loc[a[0],'ratio'] = df['GD'].values[0]
+        df3.to_csv('dataset-pre.csv',index=False)
     
     else:
 
@@ -942,7 +877,12 @@ def ration2(m1,m2,counter,line,iii):
         df3['ratio'].replace(' ',np.nan, inplace=True)
         df4=df3.dropna(subset=["ratio"])
         a=df4['ratio'].shape
-        df3.loc[a[0],'ratio']=df['GD'].values[0]
+        if target == '2DG':
+            print(f"Extracting {target} to dataset-pre.csv")
+            df3.loc[a[0],'ratio'] = df['2DG'].values[0]
+        else:
+            print(f"Extracting {target} to dataset-pre.csv")
+            df3.loc[a[0],'ratio'] = df['GD'].values[0]
         df3.to_csv('dataset-pre.csv',index=False)
     return df['GD'].values[0] 
 
