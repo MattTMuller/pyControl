@@ -6,7 +6,8 @@ from random import randrange
 from datetime import date
 
 def write_data_files(path: Path, series: int, nr_random_lines: int = 7, \
-    power_range: set = (5,1190), time_range: set = (1050,5000), pressure_range: set = (100,350)) -> None:
+    power_range: set = (5,1190), time_range: set = (1050,5000), pressure_range: set = (100,350), \
+    batch: bool = False) -> None:
         """ Writes data files with the parameter design at path:
             path: Path of the campaign
             series: Campaign number
@@ -30,37 +31,70 @@ def write_data_files(path: Path, series: int, nr_random_lines: int = 7, \
                 line_time.append(tm)
                 pressure.append(pr)
 
-        p=str(date.today())+"-Series-"+str(series)
+        print(f"POWER: {power_range}\n",
+              f"TIME: {time_range}\n",
+              f"PRESSURE: {pressure_range}")
+
+        if batch:
+            p = str(date.today()) + "-BATCH-" + str(series)
+            data_header=['power','time','pressure','ratio','resistance']
+            plot_header=['power','time','pressure','dummy_ratio', 'dummy_resistance', \
+                         'pred_mean', 'pred_upper', 'ei']
+        else:
+            p = str(date.today()) + "-Series-" + str(series)
+            data_header=['power','time','pressure','ratio']
+            plot_header=['power','time','pressure','dummy_ratio', \
+                        'pred_mean', 'pred_upper', 'ei']
+
         print(f"Here is the new Campaign Folder:{p}")
         # path = Path(r'c:\\Users\\UWAdmin\\Desktop\\_pyControl\\campaigns')
         os.chdir(path)
         os.mkdir(p)
         os.chdir(p)
 
-        row=['power','time','pressure','ratio']
-        plot_row=['power','time','pressure','dummy_ratio', 'pred_mean', 'pred_upper', 'ei']
+        fit_header=['D','PD','WD','FD','D1','PD1','WD1','FD1',\
+                    'G','PG','WG','FG','2D','P2D','W2D','F2D','GD','2DG','file']
         #rename this to raw_post_processed.csv
         with open('dataset.csv', 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(row)
+                writer.writerow(data_header)
                 writer.writerows(zip(power, line_time, pressure))
 
         #rename this to raw_pre-patterning.csv
         with open('dataset-pre.csv', 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(row)
+                writer.writerow(data_header)
                 writer.writerows(zip(power, line_time, pressure))
 
         # THIS HAS THREE ADDITIONAL COLUMNS
         with open('plot_data.csv', 'w', newline='') as f:
                 writer = csv.writer(f)
-                writer.writerow(plot_row)
+                writer.writerow(plot_header)
+                # writer.writerows(zip(power, line_time, pressure))
+
+         # THIS HAS THREE ADDITIONAL COLUMNS
+        with open('fit_results.csv', 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(fit_header)
                 # writer.writerows(zip(power, line_time, pressure))
 
         df2=pd.read_csv('dataset.csv')
         df2=df2.drop_duplicates() #keep only the unique rows
         df2.head()
         df2.to_csv('data.csv',index=False) #this is what will be read by mlrMBO in th R code
+
+def duplicate_to_dataset(rep: int, nr_proposed_lines: int) -> None:
+    data = pd.read_csv('data.csv')
+    dataset = pd.read_csv('dataset.csv')
+    dataset_pre = pd.read_csv('dataset-pre.csv')
+
+    proposed = data.iloc[-nr_proposed_lines:]
+    repeated_data = pd.DataFrame(np.repeat(proposed.values, rep, axis=0))
+    repeated_data.columns = proposed.columns
+    new_dataset = pd.concat([dataset, repeated_data])
+    new_dataset.to_csv('dataset.csv',index = False)
+    new_dataset_pre = pd.concat([dataset_pre, repeated_data])
+    new_dataset_pre.to_csv('dataset-pre.csv',index = False)
 
 def write_more() -> None:
     """
