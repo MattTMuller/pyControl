@@ -83,12 +83,12 @@ def write_data_files(path: Path, series: int, nr_random_lines: int = 7, \
         df2.head()
         df2.to_csv('data.csv',index=False) #this is what will be read by mlrMBO in th R code
 
-def duplicate_to_dataset(rep: int, nr_proposed_lines: int, prepattern: bool) -> None:
+def duplicate_to_dataset(nr_proposed_lines: int, prepattern: bool = False, rep: int = 9) -> None:
     data = pd.read_csv('data.csv')
     dataset = pd.read_csv('dataset.csv')
 
     proposed = data.iloc[-nr_proposed_lines:]
-    repeated_data = pd.DataFrame(np.repeat(proposed.values, rep, axis=0))
+    repeated_data = pd.DataFrame(np.repeat(proposed.values, rep, axis = 0))
     repeated_data.columns = proposed.columns
     new_dataset = pd.concat([dataset, repeated_data])
     new_dataset.to_csv('dataset.csv',index = False)
@@ -146,33 +146,37 @@ def repeats() -> None:
             for line in reader:
                 writer.writerow(line)
 
-def take_mean(steps: int, save_line: int) -> float:
+def get_mean(steps: int, save_line: int, target: str='ratio') -> float:
 
     print(os.getcwd())
     df = pd.read_csv('dataset.csv')
+    spots_measured = save_line/steps
+    result = df[target].iloc[steps:steps + spots_measured].mean()
+    df[target][steps:steps + spots_measured].fillna(0, inplace=True)
+    df.to_csv('dataset.csv', index=False)
 
-    valss = np.sort([df['ratio'][steps+8], df['ratio'][steps+7], df['ratio'][steps+6],
-                    df['ratio'][steps+5], df['ratio'][steps+4], df['ratio'][steps+3],
-                   df['ratio'][steps+2], df['ratio'][steps+1], df['ratio'][steps]])
-
-    lst = [s for s in valss if str(s) != 'nan']
-    result = np.mean(lst)
-    df['ratio'].iloc[-len(valss):].fillna(0, inplace=True)
     df2 = pd.read_csv('data.csv')
-    df2.loc[save_line,"ratio"] = result
+    df2.loc[save_line, target] = result
     df2.to_csv('data.csv', index = False)
     return result
 
-    # print(os.getcwd())
-    # df = pd.read_csv('dataset.csv')
-    # result = df['ratio'].iloc[-spots_measured:].mean()
-    # df['ratio'].iloc[-spots_measured:].fillna(0, inplace=True)
-    # df.to_csv('dataset.csv', index = False)
+# def take_mean(steps: int, save_line: int) -> float:
 
-    # df2 = pd.read_csv('data.csv')
-    # df2.loc[save_line,"ratio"] = result
-    # df2.to_csv('data.csv',index = False)
-    # return result
+#     print(os.getcwd())
+#     df = pd.read_csv('dataset.csv')
+
+#     valss = np.sort([df['ratio'][steps+8], df['ratio'][steps+7], df['ratio'][steps+6],
+#                     df['ratio'][steps+5], df['ratio'][steps+4], df['ratio'][steps+3],
+#                    df['ratio'][steps+2], df['ratio'][steps+1], df['ratio'][steps]])
+
+#     lst = [s for s in valss if str(s) != 'nan']
+#     result = np.mean(lst)
+#     df['ratio'].iloc[-len(valss):].fillna(0, inplace=True)
+#     df.to_csv('dataset.csv', index=False)
+#     df2 = pd.read_csv('data.csv')
+#     df2.loc[save_line,"ratio"] = result
+#     df2.to_csv('data.csv', index = False)
+#     return result
 
 def get_move_y(lines: int, start_y: int, step_y: int = 1) -> list:
     move_y = [0 for i in range(int(lines))]
