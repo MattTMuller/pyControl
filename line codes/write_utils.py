@@ -83,19 +83,20 @@ def write_data_files(path: Path, series: int, nr_random_lines: int = 7, \
         df2.head()
         df2.to_csv('data.csv',index=False) #this is what will be read by mlrMBO in th R code
 
-def duplicate_to_dataset(rep: int, nr_proposed_lines: int) -> None:
+def duplicate_to_dataset(rep: int, nr_proposed_lines: int, prepattern: bool) -> None:
     data = pd.read_csv('data.csv')
     dataset = pd.read_csv('dataset.csv')
-    dataset_pre = pd.read_csv('dataset-pre.csv')
 
     proposed = data.iloc[-nr_proposed_lines:]
     repeated_data = pd.DataFrame(np.repeat(proposed.values, rep, axis=0))
     repeated_data.columns = proposed.columns
     new_dataset = pd.concat([dataset, repeated_data])
     new_dataset.to_csv('dataset.csv',index = False)
-    new_dataset_pre = pd.concat([dataset_pre, repeated_data])
-    new_dataset_pre.to_csv('dataset-pre.csv',index = False)
-
+    if prepattern:
+        dataset_pre = pd.read_csv('dataset-pre.csv')
+        new_dataset_pre = pd.concat([dataset_pre, repeated_data])
+        new_dataset_pre.to_csv('dataset-pre.csv',index = False)
+    
 def write_more() -> None:
     """
     Used after doing the AI stuff
@@ -145,18 +146,33 @@ def repeats() -> None:
             for line in reader:
                 writer.writerow(line)
 
-def take_mean(save_line: int, spots_measured: int) -> float:
+def take_mean(steps: int, save_line: int) -> float:
 
     print(os.getcwd())
     df = pd.read_csv('dataset.csv')
-    result = df['ratio'].iloc[-spots_measured:].mean()
-    df['ratio'].iloc[-spots_measured:].fillna(0, inplace=True)
-    df.to_csv('dataset.csv', index = False)
 
+    valss = np.sort([df['ratio'][steps+8], df['ratio'][steps+7], df['ratio'][steps+6],
+                    df['ratio'][steps+5], df['ratio'][steps+4], df['ratio'][steps+3],
+                   df['ratio'][steps+2], df['ratio'][steps+1], df['ratio'][steps]])
+
+    lst = [s for s in valss if str(s) != 'nan']
+    result = np.mean(lst)
+    df['ratio'].iloc[-len(valss):].fillna(0, inplace=True)
     df2 = pd.read_csv('data.csv')
     df2.loc[save_line,"ratio"] = result
-    df2.to_csv('data.csv',index = False)
+    df2.to_csv('data.csv', index = False)
     return result
+
+    # print(os.getcwd())
+    # df = pd.read_csv('dataset.csv')
+    # result = df['ratio'].iloc[-spots_measured:].mean()
+    # df['ratio'].iloc[-spots_measured:].fillna(0, inplace=True)
+    # df.to_csv('dataset.csv', index = False)
+
+    # df2 = pd.read_csv('data.csv')
+    # df2.loc[save_line,"ratio"] = result
+    # df2.to_csv('data.csv',index = False)
+    # return result
 
 def get_move_y(lines: int, start_y: int, step_y: int = 1) -> list:
     move_y = [0 for i in range(int(lines))]
